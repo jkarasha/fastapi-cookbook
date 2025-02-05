@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 import security
 import premium_access
 import rbac
+import github_login
 from db import get_engine, get_session
 from models import Base
 from operations import add_user
@@ -19,6 +20,7 @@ from schemas import (
     UserCreateBody,
     UserCreateResponse,
 )
+from third_party_login import resolve_github_token  
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,7 +35,7 @@ app = FastAPI(
 app.include_router(security.router)
 app.include_router(premium_access.router)
 app.include_router(rbac.router)
-#app.include_router(github_login.router)
+app.include_router(github_login.router)
 #app.include_router(mfa.router)
 #app.include_router(user_session.router)
 #app.include_router(api_key.router)
@@ -68,3 +70,18 @@ def register(
         "message": "user created", # type: ignore
         "user": user_response,
     }
+
+@app.get(
+    "/home",
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "token not valid"
+        }
+    },
+)
+def homepage(
+    user: UserCreateResponse = Depends(
+        resolve_github_token
+    ),
+):
+    return {"message": f"logged in {user.username} !"}
