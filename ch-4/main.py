@@ -9,6 +9,8 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 import security
+import premium_access
+import rbac
 from db import get_engine, get_session
 from models import Base
 from operations import add_user
@@ -29,8 +31,8 @@ app = FastAPI(
 )
 
 app.include_router(security.router)
-#app.include_router(premium_access.router)
-#app.include_router(rbac.router)
+app.include_router(premium_access.router)
+app.include_router(rbac.router)
 #app.include_router(github_login.router)
 #app.include_router(mfa.router)
 #app.include_router(user_session.router)
