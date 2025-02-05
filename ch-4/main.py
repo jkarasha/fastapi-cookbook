@@ -8,7 +8,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-
+import security
 from db import get_engine, get_session
 from models import Base
 from operations import add_user
@@ -28,7 +28,7 @@ app = FastAPI(
     title="Saas application", lifespan=lifespan
 )
 
-#app.include_router(security.router)
+app.include_router(security.router)
 #app.include_router(premium_access.router)
 #app.include_router(rbac.router)
 #app.include_router(github_login.router)
