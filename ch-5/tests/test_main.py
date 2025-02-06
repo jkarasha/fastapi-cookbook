@@ -20,7 +20,7 @@ def test_read_main_client(test_client):
     assert response.status_code == 200
     assert response.json() == {"message": "Hello from ch-5!"}
 
- 
+@pytest.mark.integration
 def test_client_can_add_read_the_item_from_database(test_client, test_db_session):
     response = test_client.get("/item/1")
     assert response.status_code == 404
