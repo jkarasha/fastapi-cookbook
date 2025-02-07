@@ -9,8 +9,20 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from protoapp.db import Item, SessionLocal
+from protoapp.logging import client_logger
 
 app = FastAPI()
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    client_logger.info(
+        f"method: {request.method}, "
+        f"call: {request.url.path}, "
+        f"ip: {request.client.host}"
+    )
+    response = await call_next(request)
+    return response
+
 
 def get_db_session():
     db = SessionLocal()
