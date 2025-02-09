@@ -1,8 +1,10 @@
+from re import A
+from turtle import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, load_only
 
-from app.db import Ticket
+from app.db import Ticket, TicketDetails
 from app.db import Base
 
 async def create_ticket(
@@ -11,7 +13,14 @@ async def create_ticket(
     user: str,
     price: float,
 ) -> int:
-    ticket = Ticket(show=show_name, user=user, price=price)
+    ticket = Ticket(
+        show=show_name,
+        user=user,
+        price=price,
+        # Create an empty ticket details object
+        details=TicketDetails()
+    )
+
     async with db_session.begin():
         db_session.add(ticket)
         await db_session.flush()
@@ -30,11 +39,35 @@ async def get_ticket(
         tickets = await session.execute(query)
         return tickets.scalars().first()
 
+async def get_all_tickets_for_show(
+    db_session: AsyncSession,
+    show: str
+    ) -> list[Ticket]:
+    async with db_session as session:
+        result = await session.execute(
+            select(Ticket).where(Ticket.show == show)
+        )
+        tickets = result.scalars().all()
+        return tickets
+
+async def delete_ticket(
+    db_session: AsyncSession,
+    ticket_id: int,
+    ) -> bool:
+    async with db_session.begin() as session:
+        tickets_removed = await session.execute(
+            delete(Ticket).where(Ticket.id == ticket_id)
+        )
+        await session.commit()
+        if tickets_removed.rowcount == 0:
+            return False
+        return True
+
 async def update_ticket_price(
     db_session: AsyncSession,
     ticket_id: int,
     new_price: float,
-) -> bool:
+    ) -> bool:
     query = update(Ticket).where(Ticket.id == ticket_id).values(price=new_price)
 
     async with db_session.begin() as session:
@@ -44,15 +77,46 @@ async def update_ticket_price(
             return False
         return True
 
-async def delete_ticket(
+async def update_ticket(
     db_session: AsyncSession,
     ticket_id: int,
-) -> bool:
-    async with db_session.begin() as session:
-        tickets_removed = await session.execute(
-            delete(Ticket).where(Ticket.id == ticket_id)
-        )
+    update_ticket_dict: dict
+    ) -> bool:
+    ticket_query = update(Ticket).where(
+        Ticket.id == ticket_id
+    )
+    updating_ticket_values = update_ticket_dict.copy()
+
+    if updating_ticket_values == {}:
+        return False
+    ticket_query = ticket_query.values(**updating_ticket_values)
+
+    async with db_session as session:
+        result = await session.execute(ticket_query)
         await session.commit()
-        if tickets_removed.rowcount == 0:
+        if result.rowcount == 0:
             return False
         return True
+    
+    return True
+
+async def update_ticket_details(
+    db_session: AsyncSession,
+    ticket_id: int,
+    updating_ticket_details: dict
+    ) -> bool:
+    ticket_query = update(TicketDetails).where(
+        TicketDetails.ticket_id == ticket_id
+    )
+
+    if updating_ticket_details == {}:
+        return False
+    ticket_query = ticket_query.values(**updating_ticket_details)
+
+    async with db_session as session:
+        result = await session.execute(ticket_query)
+        await session.commit()
+        if result.rowcount == 0:
+            return False
+    
+    return True
