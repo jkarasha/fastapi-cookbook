@@ -120,3 +120,47 @@ async def update_ticket_details(
             return False
     
     return True
+
+async def create_event(
+    db_session: AsyncSession,
+    event_name: str,
+    nb_tickets: int | None = 0,
+    ) -> int:
+    async with db_session.begin():
+        event = Event(name=event_name)
+        db_session.add(event)
+        await db_session.flush()
+        event_id = event.id
+        tickets = [
+            Ticket(
+                show=event_name,
+                details=TicketDetails(seat=f"{n}A"),
+                event_id=event_id,
+            )
+            for n in range(nb_tickets)
+        ]
+        db_session.add_all(tickets)
+        await db_session.commit()
+    return event_id
+
+async def create_event(
+    db_session: AsyncSession,
+    event_name: str,
+    nb_tickets: int | None = 0,
+    ) -> int:
+    async with db_session.begin():
+        event = Event(name=event_name)
+        db_session.add(event)
+        await db_session.flush()
+        event_id = event.id
+        tickets = [
+            Ticket(
+                show=event_name,
+                details=TicketDetails(seat=f"{n}A"),
+                event_id=event_id,
+            )
+            for n in range(nb_tickets)
+        ]
+        db_session.add_all(tickets)
+        await db_session.commit()
+    return event_id
