@@ -164,3 +164,58 @@ async def create_event(
         db_session.add_all(tickets)
         await db_session.commit()
     return event_id
+
+async def add_sponsor_to_event(
+    db_session: AsyncSession,
+    event_id: int,
+    sponsor_id: int,
+    amount: float,
+    ) -> bool:
+    query = text(
+        "INSERT INTO sponsorships "
+        "(event_id, sponsor_id, amount) "
+        "VALUES (:event_id, :sponsor_id, :amount) "
+        "ON CONFLICT (event_id, sponsor_id) "
+        "DO UPDATE SET amount = "
+        "sponsorships.amount + EXCLUDED.amount"
+    )
+    params = {
+        "event_id": event_id,
+        "sponsor_id": sponsor_id,
+        "amount": amount,
+    }
+
+    async with db_session.begin():
+        result = await db_session.execute(query, params)
+        await db_session.commit()
+        if result.rowcount == 0:
+            return False
+    return True
+
+async def get_event(
+    db_session: AsyncSession, event_id: int
+    ) -> Event | None:
+    query = (
+        select(Event)
+        .where(Event.id == event_id)
+        .options(
+            joinedload(Event.sponsors)
+        )  # check to remove select in load
+    )
+    async with db_session as session:
+        result = await session.execute(query)
+        event = result.scalars().first()
+
+    return event
+
+async def get_events_with_sponsors(
+    db_session: AsyncSession,
+) -> list[Event]:
+    query = select(Event).options(
+        joinedload(Event.sponsors)
+    )
+    async with db_session as session:
+        result = await session.execute(query)
+        events = result.scalars().all()
+
+    return events
