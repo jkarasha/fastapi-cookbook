@@ -1,5 +1,8 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel, Field
+from typing import Annotated
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import Base
 from app.db_connection import (
@@ -9,6 +12,9 @@ from app.db_connection import (
 )
 from app.operations import (
     create_ticket,
+    delete_ticket,
+    get_ticket,
+    update_ticket_price,
 )
 
 class TicketRequest(BaseModel):
@@ -36,3 +42,16 @@ async def create_ticket_route(
     ]):
     ticket_id = await create_ticket(db_session, ticket.show, ticket.user, ticket.price)
     return {"ticket_id": ticket_id}
+
+@app.get("/ticket/{ticket_id}")
+async def get_ticket_route(
+    db_session: Annotated[
+        AsyncSession,
+        Depends(get_db_session),
+    ],
+    ticket_id: int
+):
+    ticket = await get_ticket(db_session, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return ticket

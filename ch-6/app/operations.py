@@ -1,7 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload, load_only
 
 from app.db import Ticket
+from app.db import Base
 
 async def create_ticket(
     db_session: AsyncSession,
@@ -18,13 +20,15 @@ async def create_ticket(
     return ticket_id
 
 async def get_ticket(
-    db_session: AsyncSession,
-    ticket_id: int,
+    db_session: AsyncSession, ticket_id: int,
 ) -> Ticket | None:
-    query = select(Ticket).where(Ticket.id == ticket_id)
-    async with db_session.begin() as session:
+    query = (
+        select(Ticket)
+        .where(Ticket.id == ticket_id)
+    )
+    async with db_session as session:
         tickets = await session.execute(query)
-        return tickets.scalar_one_or_none()
+        return tickets.scalars().first()
 
 async def update_ticket_price(
     db_session: AsyncSession,
