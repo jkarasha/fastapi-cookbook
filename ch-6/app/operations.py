@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, load_only
 
-from app.db import Ticket, TicketDetails
+from app.db import Ticket, TicketDetails, Event, Sponsor, Sponsorship
 from app.db import Base
 
 async def create_ticket(
