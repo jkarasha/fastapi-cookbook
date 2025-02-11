@@ -21,11 +21,12 @@ async def create_ticket(
         details=TicketDetails()
     )
 
-    async with db_session.begin():
-        db_session.add(ticket)
-        await db_session.flush()
+    async with db_session as session:
+        session.add(ticket)
+        await session.flush()
         ticket_id = ticket.id
-        await db_session.commit()
+        await session.commit()
+        
     return ticket_id
 
 async def get_ticket(
@@ -54,7 +55,7 @@ async def delete_ticket(
     db_session: AsyncSession,
     ticket_id: int,
     ) -> bool:
-    async with db_session.begin() as session:
+    async with db_session as session:
         tickets_removed = await session.execute(
             delete(Ticket).where(Ticket.id == ticket_id)
         )
@@ -70,7 +71,7 @@ async def update_ticket_price(
     ) -> bool:
     query = update(Ticket).where(Ticket.id == ticket_id).values(price=new_price)
 
-    async with db_session.begin() as session:
+    async with db_session as session:
         ticket_updated = await session.execute(query)
         await session.commit()
         if ticket_updated.rowcount == 0:
@@ -126,10 +127,10 @@ async def create_event(
     event_name: str,
     nb_tickets: int | None = 0,
     ) -> int:
-    async with db_session.begin():
+    async with db_session as session:
         event = Event(name=event_name)
-        db_session.add(event)
-        await db_session.flush()
+        session.add(event)
+        await session.flush()
         event_id = event.id
         tickets = [
             Ticket(
@@ -139,8 +140,8 @@ async def create_event(
             )
             for n in range(nb_tickets)
         ]
-        db_session.add_all(tickets)
-        await db_session.commit()
+        session.add_all(tickets)
+        await session.commit()
     return event_id
 
 async def create_event(
@@ -148,10 +149,10 @@ async def create_event(
     event_name: str,
     nb_tickets: int | None = 0,
     ) -> int:
-    async with db_session.begin():
+    async with db_session as session:
         event = Event(name=event_name)
-        db_session.add(event)
-        await db_session.flush()
+        session.add(event)
+        await session.flush()
         event_id = event.id
         tickets = [
             Ticket(
@@ -161,8 +162,8 @@ async def create_event(
             )
             for n in range(nb_tickets)
         ]
-        db_session.add_all(tickets)
-        await db_session.commit()
+        session.add_all(tickets)
+        await session.commit()
     return event_id
 
 async def add_sponsor_to_event(
@@ -185,9 +186,9 @@ async def add_sponsor_to_event(
         "amount": amount,
     }
 
-    async with db_session.begin():
-        result = await db_session.execute(query, params)
-        await db_session.commit()
+    async with db_session as session:
+        result = await session.execute(query, params)
+        await session.commit()
         if result.rowcount == 0:
             return False
     return True
@@ -220,7 +221,6 @@ async def get_events_with_sponsors(
 
     return events
 
-
 async def get_event_sponsorships_with_amount(
     db_session: AsyncSession, event_id: int
     ):
@@ -240,7 +240,7 @@ async def get_event_sponsorships_with_amount(
 
 async def get_events_tickets_with_user_price(
     db_session: AsyncSession, event_id: int
-) -> list[Ticket]:
+    ) -> list[Ticket]:
     query = (
         select(Ticket)
         .where(Ticket.event_id == event_id)
@@ -254,3 +254,25 @@ async def get_events_tickets_with_user_price(
         result = await session.execute(query)
         tickets = result.scalars().all()
     return tickets
+
+async def sell_ticket_to_user(
+    db_session: AsyncSession, ticket_id: int, user: str
+    ) -> bool:
+
+    ticket_query = (
+        update(Ticket)
+        .where(
+            and_(
+                Ticket.id == ticket_id,
+                Ticket.sold == False
+                )
+        )
+        .values(sold=True, user=user)
+    )
+
+    async with db_session as session:
+        result = await session.execute(ticket_query)
+        await session.commit()
+        if result.rowcount == 0:
+            return False
+    return True
