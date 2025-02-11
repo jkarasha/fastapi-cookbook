@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,7 +53,7 @@ async def get_ticket_route(
 
     ticket = await get_ticket(db_session, ticket_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
     return ticket
 
 @app.put("/ticket/{ticket_id}")
@@ -72,7 +72,7 @@ async def update_ticket_route(
         db_session, ticket_id, update_dict_args
     )
     if not updated:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
     
     return {"detail": "Ticket updated successfully"}
 
@@ -90,7 +90,7 @@ async def update_ticket_price_route(
         db_session, ticket_id, new_price
     )
     if not updated:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
     
     return {"detail": "Ticket price updated successfully"}
 
@@ -105,7 +105,7 @@ async def delete_ticket_route(
     
     deleted_ticket = await delete_ticket(db_session, ticket_id)
     if not deleted_ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
     
     return {"detail": "Ticket deleted successfully"}
 
@@ -151,7 +151,7 @@ async def register_sponsor_route(
     
     sponsor_id = await create_sponsor(db_session, sponsor_name)
     if not sponsor_id:
-        raise HTTPException(status_code=400, detail="Sponsor not created")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sponsor not created")
     
     return {"sponsor_id": sponsor_id}
 
@@ -170,7 +170,7 @@ async def register_sponsor_amount_contribution(
     )
     if not registered:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Contribution not registered",
         )
 
