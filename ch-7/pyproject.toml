@@ -7,9 +7,9 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.11.12",
     "elasticsearch>=8.17.1",
+    "fastapi-cache2[redis]>=0.2.2",
     "fastapi[all]>=0.115.8",
     "motor>=3.7.0",
     "pytest>=8.3.4",
-    "redis>=5.2.1",
     "requests>=2.32.3",
 ]
