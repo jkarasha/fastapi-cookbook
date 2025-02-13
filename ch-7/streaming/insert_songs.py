@@ -1,13 +1,13 @@
 import asyncio
 import logging
 
-from ..app.db import (
+from app.db import (
     mongo_client,
     ping_mongo_db_server,
 )
 
 
-from data.songs import songs_list
+from songs import songs_list
 
 logging.basicConfig(level=logging.DEBUG)
 db = mongo_client.beat_streaming
