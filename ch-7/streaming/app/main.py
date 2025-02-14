@@ -7,6 +7,7 @@ from bson import ObjectId
 
 from app.db import ping_mongo_db_server
 from app.models import mongo_database
+from app.schemas import PlayList
 
 # This will ensure objectIds are encoded & returned as strings
 ENCODERS_BY_TYPE[ObjectId] = str
@@ -76,7 +77,6 @@ async def update_song(
     }
 
 
-
 @app.delete("/song/{song_id}")
 async def delete_song(
         song_id: str,
@@ -95,4 +95,95 @@ async def delete_song(
         )
     return {
         'message': 'Song deleted successfully'
+    }
+
+@app.post("/playlist")
+async def create_playlist(
+        playlist: PlayList = Body(
+            example={
+                "name": "Favorite Songs",
+                "songs": ["Song 1", "Song 2"]
+            }
+        ),
+        db=Depends(mongo_database),
+    ):
+    result = await db.playlists.insert_one(playlist.model_dump())
+    return {
+        'id': str(result.inserted_id),
+        'message': 'Playlist created successfully'
+    }
+
+@app.get("/playlist/{playlist_id}")
+async def get_playlist(
+        playlist_id: str,
+        db=Depends(mongo_database),
+    ):
+    playlist = await db.playlists.find_one(
+        {
+            "_id": ObjectId(playlist_id)
+            if ObjectId.is_valid(playlist_id) else None
+        }
+    )
+    if not playlist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Playlist not found"
+        )
+    songs = await db.songs.find(
+        {
+            "_id": {
+                "$in": [
+                    ObjectId(song_id)
+                    if ObjectId.is_valid(song_id) else None
+                    for song_id in playlist["songs"]
+                ]
+            }
+        }
+    ).to_list(None)
+    
+    return {
+        "name": playlist["name"],
+        "songs": songs
+    }
+
+@app.put("/playlist/{playlist_id}")
+async def update_playlist(
+        playlist_id: str,
+        updated_playlist: PlayList,
+        db=Depends(mongo_database),
+    ):
+    result = await db.playlists.update_one(
+        {
+            "_id": ObjectId(playlist_id)
+            if ObjectId.is_valid(playlist_id) else None
+        },
+        {"$set": updated_playlist.dict()}
+    )
+    if not result.modified_count:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Playlist not found"
+        )
+    return {
+        'message': 'Playlist updated successfully'
+    }
+
+@app.delete("/playlist/{playlist_id}")
+async def delete_playlist(
+        playlist_id: str,
+        db=Depends(mongo_database),
+    ):
+    result = await db.playlists.delete_one(
+        {
+            "_id": ObjectId(playlist_id)
+            if ObjectId.is_valid(playlist_id) else None
+        }
+    )
+    if not result.deleted_count:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Playlist not found"
+        )
+    return {
+        'message': 'Playlist deleted successfully'
     }
