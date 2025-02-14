@@ -129,6 +129,7 @@ async def get_playlist(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Playlist not found"
         )
+    print(playlist)
     songs = await db.songs.find(
         {
             "_id": {
@@ -140,7 +141,7 @@ async def get_playlist(
             }
         }
     ).to_list(None)
-    
+    print(songs)
     return {
         "name": playlist["name"],
         "songs": songs
