@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI):
     db = mongo_database()
     logger.info("Creating songs index. -1 means descending order")
     await db.songs.create_index({"album.release_year": -1})
+    await db.songs.create_index({"artist": "text"})
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -200,6 +201,25 @@ async def get_songs_by_released_year(
         db=Depends(mongo_database),
     ):
     query = db.songs.find({"album.release_year": year})
+    explained_query = await query.explain()
+    logger.info(
+        "Index used: %s",
+        explained_query.get("queryplanner", {})
+        .get("winningPlan", {})
+        .get("inputStage", {})
+        .get("indexName", "No index was used")
+    )
+
+    songs = await query.to_list(None)
+    return songs
+
+# get songs by artist
+@app.get("/songs/artist")
+async def get_songs_by_artist(
+        artist: str,
+        db=Depends(mongo_database),
+    ):
+    query = db.songs.find({"$text": {"$search": artist}})
     explained_query = await query.explain()
     logger.info(
         "Index used: %s",
