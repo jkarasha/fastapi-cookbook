@@ -17,6 +17,9 @@ ENCODERS_BY_TYPE[ObjectId] = str
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await ping_mongo_db_server()
+    db = mongo_database()
+    logger.info("Creating songs index. -1 means descending order")
+    await db.songs.create_index({"album.release_year": -1})
     yield
 
 app = FastAPI(lifespan=lifespan)
