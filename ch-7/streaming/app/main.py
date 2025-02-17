@@ -204,7 +204,7 @@ async def get_songs_by_released_year(
     explained_query = await query.explain()
     logger.info(
         "Index used: %s",
-        explained_query.get("queryplanner", {})
+        explained_query.get("queryPlanner", {})
         .get("winningPlan", {})
         .get("inputStage", {})
         .get("indexName", "No index was used")
@@ -223,9 +223,8 @@ async def get_songs_by_artist(
     explained_query = await query.explain()
     logger.info(
         "Index used: %s",
-        explained_query.get("queryplanner", {})
-        .get("winningPlan", {})
-        .get("inputStage", {})
+        explained_query.get("queryPlanner", {})
+        .get("winningPlan", {})        
         .get("indexName", "No index was used")
     )
 
