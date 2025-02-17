@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import (
     FastAPI, Body, Depends, status, HTTPException
@@ -9,6 +10,7 @@ from app.db import ping_mongo_db_server
 from app.models import mongo_database
 from app.schemas import PlayList
 
+logger = logging.getLogger("uvicorn.error")
 # This will ensure objectIds are encoded & returned as strings
 ENCODERS_BY_TYPE[ObjectId] = str
 
@@ -29,8 +31,8 @@ async def add_song(song: dict = Body(
         }
     ),
     db=Depends(mongo_database),
-):
-    inserted_song = await db.songs.insert_one(song)
+    ):
+    inserted_song = await db.songs.insert_one(song.model_dump())
     return {
         'id': str(inserted_song.inserted_id),
         'message': 'Song added successfully'
@@ -75,7 +77,6 @@ async def update_song(
     return {
         'message': 'Song updated successfully'
     }
-
 
 @app.delete("/song/{song_id}")
 async def delete_song(
@@ -129,7 +130,7 @@ async def get_playlist(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Playlist not found"
         )
-    print(playlist)
+    
     songs = await db.songs.find(
         {
             "_id": {
@@ -141,7 +142,7 @@ async def get_playlist(
             }
         }
     ).to_list(None)
-    print(songs)
+    
     return {
         "name": playlist["name"],
         "songs": songs
@@ -188,3 +189,22 @@ async def delete_playlist(
     return {
         'message': 'Playlist deleted successfully'
     }
+
+# get songs by year
+@app.get("/songs/year")
+async def get_songs_by_released_year(
+        year: int,
+        db=Depends(mongo_database),
+    ):
+    query = db.songs.find({"album.release_year": year})
+    explained_query = await query.explain()
+    logger.info(
+        "Index used: %s",
+        explained_query.get("queryplanner", {})
+        .get("winningPlan", {})
+        .get("inputStage", {})
+        .get("indexName", "No index was used")
+    )
+
+    songs = await query.to_list(None)
+    return songs
